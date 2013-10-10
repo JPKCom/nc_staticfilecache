@@ -9,6 +9,10 @@
       <label index="nc_staticfilecache.field">Cache page as static file</label>
       <label index="moduleFunction.tx_ncstaticfilecache_modfunc1">Static file cache</label>
     </languageKey>
+		<languageKey index="de" type="array">
+			<label index="nc_staticfilecache.field">Speichere Seitencache als statische Datei</label>
+			<label index="moduleFunction.tx_ncstaticfilecache_modfunc1">Statischer HTML Cache</label>
+		</languageKey>
     <languageKey index="nl" type="array">
       <label index="nc_staticfilecache.field">Pagina opslaan als statische html</label>
       <label index="moduleFunction.tx_ncstaticfilecache_modfunc1">Statische html cache</label>

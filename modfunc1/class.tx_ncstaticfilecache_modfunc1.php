@@ -129,7 +129,8 @@ class tx_ncstaticfilecache_modfunc1 extends t3lib_extobjbase {
 					}
 
 					$tCells[] = '<td nowrap="nowrap"><span class="typo3-dimmed">'.($frec['crdate']?t3lib_BEfunc::datetime($frec['crdate']):'').'</span></td>';
-					$tCells[] = '<td nowrap="nowrap">'.t3lib_BEfunc::calcAge(($frec['cache_timeout']),$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')).'</td>';
+					$timeout = ($frec['crdate'] > 0) ? t3lib_BEfunc::calcAge(($frec['cache_timeout']),$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')) : '';
+					$tCells[] = '<td nowrap="nowrap">'.$timeout.'</td>';
 					$tCells[] = '<td nowrap="nowrap">'.($frec['explanation']?$frec['explanation']:'').'</td>';
 
 					// Compile Row:

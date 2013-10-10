@@ -31,17 +31,18 @@
  *
  *
  *
- *   56: class tx_ncstaticfilecache
- *   69:     function clearCachePostProc (&$params, &$pObj)
- *  163:     function clearStaticFile (&$_params)
- *  212:     function getRecordForPageID($pid)
- *  230:     function headerNoCache (&$params, $parent)
- *  246:     function insertPageIncache (&$pObj, &$timeOutTime)
- *  375:     function logNoCache (&$params)
- *  398:     function setFeUserCookie (&$params, &$pObj)
- *  446:     function rm ($dir)
+ *   57: class tx_ncstaticfilecache
+ *   70:     function clearCachePostProc (&$params, &$pObj)
+ *  164:     function clearStaticFile (&$_params)
+ *  213:     function getRecordForPageID($pid)
+ *  231:     function headerNoCache (&$params, $parent)
+ *  247:     function insertPageIncache (&$pObj, &$timeOutTime)
+ *  389:     function logNoCache (&$params)
+ *  409:     function mkdir_deep($destination,$deepDir)
+ *  437:     function setFeUserCookie (&$params, &$pObj)
+ *  485:     function rm ($dir)
  *
- * TOTAL FUNCTIONS: 8
+ * TOTAL FUNCTIONS: 9
  * (This index is automatically created/updated by the extension "extdeveval")
  *
  */
@@ -250,10 +251,7 @@ class tx_ncstaticfilecache {
 
 		$cacheDir = $this->cacheDir.$host;
 
-		if ($GLOBALS['TSFE']->config['config']['tx_realurl_enable']
-		&& !$GLOBALS['TSFE']->config['config']['simulateStaticDocuments']
-		&& !strstr(t3lib_div::getIndpEnv('REQUEST_URI'), '?')
-		&& (substr(t3lib_div::getIndpEnv('REQUEST_URI'), -1, 1) == '/')) {
+		if (!strstr(t3lib_div::getIndpEnv('REQUEST_URI'), '?')) {
 
 			$loginsDeniedCfg = !$pObj->config['config']['sendCacheHeaders_onlyWhenLoginDeniedInBranch'] || !$pObj->loginAllowedInBranch;
 			$doCache = $pObj->isStaticCacheble();
@@ -292,7 +290,8 @@ class tx_ncstaticfilecache {
 				$explanation = "loginsDeniedCfg is true";
 			}
 
-			$file = t3lib_div::getIndpEnv('REQUEST_URI').'index.html';
+			$file = t3lib_div::getIndpEnv('REQUEST_URI').'/index.html';
+			$file = preg_replace('#//#', '/', $file);
 
 			// This is supposed to have "&& !$pObj->beUserLogin" in there as well
 			// This fsck's up the ctrl-shift-reload hack, so I pulled it out.
@@ -301,15 +300,30 @@ class tx_ncstaticfilecache {
 			&& !$workspacePreview
 			&& $loginsDeniedCfg) {
 
-				//t3lib_div::mkdir_deep(PATH_site, $cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'));
-				mkdir(PATH_site.$cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'), 0770, true);
+				$phpversion = phpversion();
+				$phpversion = preg_replace ('/\./', '', $phpversion);
+
+				if ($phpversion > 500) {
+					// The recursive=true (third param) was added in php 5.0.0
+					@mkdir(PATH_site.$cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'), 0770, true);
+				}
+				else {
+					if (t3lib_div::int_from_ver(TYPO3_version) < 4000000) {
+						$this->mkdir_deep(PATH_site, $cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'));
+					}
+					else {
+						// This function does not exist in TYPO3 3.8.1
+						t3lib_div::mkdir_deep(PATH_site, $cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'));
+					}
+				}
 
 				$conf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
 				if ($conf['showGenerationSignature'])
 					$pObj->content .= "\n<!-- ".strftime ($conf['strftime'], $GLOBALS['EXEC_TIME']).' -->';
 
 				if ($conf['sendCacheControlHeader']) {
-					$htaccess = t3lib_div::getIndpEnv('REQUEST_URI').'.htaccess';
+					$htaccess = t3lib_div::getIndpEnv('REQUEST_URI').'/.htaccess';
+					$htaccess = preg_replace('#//#', '/', $htaccess);
 					$timeOutSeconds = $timeOutTime - $GLOBALS['EXEC_TIME'];
 					$htaccessContent = '<IfModule mod_expires.c>
 	ExpiresActive on
@@ -377,6 +391,31 @@ class tx_ncstaticfilecache {
 			if($params['pObj']->no_cache) {
 				$timeOutTime = 0;
 				$this->insertPageInCache($params['pObj'], $timeOutTime);
+			}
+		}
+	}
+
+	/**
+	 * Make directory
+	 *
+	 * The t3lib_div:mkdir_deep is not present in TYPO3 3.8.1
+	 *
+	 * 	 * @return	void
+	 *
+	 * @param	string		$destination: base path
+	 * @param	string		$deepDir: the path
+	 * @return	[type]		...
+	 */
+	function mkdir_deep($destination,$deepDir)	{
+		$allParts = t3lib_div::trimExplode('/',$deepDir,1);
+		$root = '';
+		foreach($allParts as $part)	{
+			$root.= $part.'/';
+			if (!is_dir($destination.$root))	{
+				t3lib_div::mkdir($destination.$root);
+				if (!@is_dir($destination.$root))	{
+					return 'Error: The directory "'.$destination.$root.'" could not be created...';
+				}
 			}
 		}
 	}
