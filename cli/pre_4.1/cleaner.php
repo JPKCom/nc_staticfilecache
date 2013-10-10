@@ -31,8 +31,13 @@ define('PATH_thisScript', $_SERVER['argv'][0]);
 
 require_once(dirname(PATH_thisScript).'/conf.php');
 require_once(dirname(PATH_thisScript).'/'.$BACK_PATH.'init.php');
-require_once(dirname(PATH_thisScript).'/../../class.tx_ncstaticfilecache.php');
-
+$conf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['nc_staticfilecache']);
+if($conf['debug']) {
+	require_once(dirname(PATH_thisScript).'/../../class.tx_ncstaticfilecache.debug.php');
+}
+else {
+	require_once(dirname(PATH_thisScript).'/../../class.tx_ncstaticfilecache.php');
+}
 
 class staticFileCacheCleaner extends tx_ncstaticfilecache {
 	var $extKey = 'nc_staticfilecache';

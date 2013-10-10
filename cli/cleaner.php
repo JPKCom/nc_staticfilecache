@@ -29,7 +29,14 @@
 if (!defined('TYPO3_cliMode'))  die('You cannot run this script directly!');
 
 require_once(PATH_t3lib.'class.t3lib_cli.php');
-require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.php');
+$conf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['nc_staticfilecache']);
+if($conf['debug']) {
+	require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.debug.php');
+}
+else {
+	require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.php');
+}
+
 
 /**
  * [CLASS/FUNCTION INDEX of SCRIPT]

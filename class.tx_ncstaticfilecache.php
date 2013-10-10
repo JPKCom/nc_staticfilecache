@@ -31,18 +31,19 @@
  *
  *
  *
- *   57: class tx_ncstaticfilecache
- *   70:     function clearCachePostProc (&$params, &$pObj)
- *  164:     function clearStaticFile (&$_params)
- *  213:     function getRecordForPageID($pid)
- *  231:     function headerNoCache (&$params, $parent)
- *  247:     function insertPageIncache (&$pObj, &$timeOutTime)
- *  389:     function logNoCache (&$params)
- *  409:     function mkdir_deep($destination,$deepDir)
- *  437:     function setFeUserCookie (&$params, &$pObj)
- *  485:     function rm ($dir)
+ *   58: class tx_ncstaticfilecache
+ *   71:     function clearCachePostProc (&$params, &$pObj)
+ *  165:     function clearStaticFile (&$_params)
+ *  216:     function getRecordForPageID($pid)
+ *  234:     function headerNoCache (&$params, $parent)
+ *  250:     function insertPageIncache (&$pObj, &$timeOutTime)
+ *  393:     function logNoCache (&$params)
+ *  413:     function mkdir_deep($destination,$deepDir)
+ *  433:     function removeExpiredPages (&$pObj)
+ *  467:     function setFeUserCookie (&$params, &$pObj)
+ *  515:     function rm ($dir)
  *
- * TOTAL FUNCTIONS: 9
+ * TOTAL FUNCTIONS: 10
  * (This index is automatically created/updated by the extension "extdeveval")
  *
  */
@@ -184,9 +185,11 @@ class tx_ncstaticfilecache {
 					break;
 				default:
 					if (t3lib_div::testInt($cacheCmd)) {
-						$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('file', $this->fileTable, 'pid='.$cacheCmd);
+						$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('file,host', $this->fileTable, 'pid='.$cacheCmd);
 						if ($res) {
 							$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
+							// This is here because the host is not known if we come in through the cli script
+							$cacheDir = $this->cacheDir.$row['host'];
 							if (is_file(PATH_site.$cacheDir.$row['file'])) {
 								// Try to remove static cache file
 								@unlink(PATH_site.$cacheDir.$row['file']);
@@ -251,7 +254,8 @@ class tx_ncstaticfilecache {
 
 		$cacheDir = $this->cacheDir.$host;
 
-		if (!strstr(t3lib_div::getIndpEnv('REQUEST_URI'), '?')) {
+		if (!strstr(t3lib_div::getIndpEnv('REQUEST_URI'), '?')
+		&& $pObj->page['doktype'] != 3) { // doktype 3: link to external page
 
 			$loginsDeniedCfg = !$pObj->config['config']['sendCacheHeaders_onlyWhenLoginDeniedInBranch'] || !$pObj->loginAllowedInBranch;
 			$doCache = $pObj->isStaticCacheble();
@@ -417,6 +421,32 @@ class tx_ncstaticfilecache {
 					return 'Error: The directory "'.$destination.$root.'" could not be created...';
 				}
 			}
+		}
+	}
+
+	/**
+	 * Remove expired pages. Call from cli script.
+	 *
+	 * @param	[type]		$$pObj: ...
+	 * @return	void
+	 */
+	function removeExpiredPages (&$pObj) {
+		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'file, host, pid, ('.$GLOBALS['EXEC_TIME'].' - crdate - cache_timeout) as seconds',
+			$this->fileTable,
+			'(cache_timeout + crdate) <= '.$GLOBALS['EXEC_TIME'].' AND crdate > 0');
+
+		if ($rows) {
+			$tce = t3lib_div::makeInstance('t3lib_TCEmain');
+			$tce->start(array(),array());
+
+			foreach ($rows as $row) {
+				$pObj->cli_echo("Removed pid: ".$row['pid']."\t".$row['host'].$row['file'].", expired by ".$row['seconds']." seconds.\n");
+				$tce->clear_cacheCmd($row['pid']);
+			}
+		}
+		else {
+			$pObj->cli_echo("No expired pages found.\n");
 		}
 	}
 

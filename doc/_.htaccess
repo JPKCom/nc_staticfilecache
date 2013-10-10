@@ -16,6 +16,10 @@ RewriteRule ^typo3$ typo3/index_re.php [L]
 #------------------------------------------------------------------------------
 # beginning of static file cache ruleset
 
+# Don't pull *.xml, *.css etc. from the cache
+RewriteCond %{REQUEST_FILENAME} !^.*\.xml$
+RewriteCond %{REQUEST_FILENAME} !^.*\.css$
+
 # Check for Ctrl Shift reload
 RewriteCond %{HTTP:Pragma} !no-cache
 RewriteCond %{HTTP:Cache-Control} !no-cache

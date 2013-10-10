@@ -29,4 +29,5 @@
 define('TYPO3_MOD_PATH', '../typo3conf/ext/nc_staticfilecache/cli/pre_4.1/');
 $BACK_PATH='../../../../../typo3/';
 $MCONF['name'] = '_CLI_staticfilecache';
+
 ?>
