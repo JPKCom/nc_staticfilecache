@@ -7,9 +7,11 @@
   <data type="array">
     <languageKey index="default" type="array">
       <label index="nc_staticfilecache.field">Cache page as static file</label>
+      <label index="moduleFunction.tx_ncstaticfilecache_modfunc1">Static file cache</label>
     </languageKey>
     <languageKey index="nl" type="array">
       <label index="nc_staticfilecache.field">Pagina opslaan als statische html</label>
+      <label index="moduleFunction.tx_ncstaticfilecache_modfunc1">Statische html cache</label>
     </languageKey>
   </data>
 </T3locallang>

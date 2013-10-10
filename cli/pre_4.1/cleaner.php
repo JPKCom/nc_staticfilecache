@@ -31,7 +31,7 @@ define('PATH_thisScript', $_SERVER['argv'][0]);
 
 require_once(dirname(PATH_thisScript).'/conf.php');
 require_once(dirname(PATH_thisScript).'/'.$BACK_PATH.'init.php');
-require_once(dirname(PATH_thisScript).'/../../lib/class.tx_ncstaticfilecache.php');
+require_once(dirname(PATH_thisScript).'/../../class.tx_ncstaticfilecache.php');
 
 
 class staticFileCacheCleaner extends tx_ncstaticfilecache {

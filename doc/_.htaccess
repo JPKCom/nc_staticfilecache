@@ -13,8 +13,8 @@ RewriteRule ^(typo3|typo3temp|typo3conf|t3lib|tslib|fileadmin|uploads|showpic\.p
 # RewriteRule ^/TYPO3root/typo3$ /TYPO3root/typo3/index.php [L]
 RewriteRule ^typo3$ typo3/index_re.php [L]
 
-# <static file cache rules>
 #------------------------------------------------------------------------------
+# beginning of static file cache ruleset
 
 # Check for Ctrl Shift reload
 RewriteCond %{HTTP:Pragma} !no-cache
@@ -24,7 +24,8 @@ RewriteCond %{HTTP:Cache-Control} !no-cache
 # option if your site runs fully on https. If your site runs mixed, you will
 # not want https traffic to be cached in the same typo3temp folder where it can
 # be requested over http.
-RewriteCond %{HTTPS} off
+# Enable this if you use a mixed setup.
+#RewriteCond %{HTTPS} off
 
 # NO backend user is logged in. Please not that the be_typo_user expires at the
 # end of the browser session. So, although you have already logged out of the
@@ -43,7 +44,7 @@ RewriteCond %{DOCUMENT_ROOT}/typo3temp/tx_ncstaticfilecache/%{HTTP_HOST}/%{REQUE
 
 RewriteRule .* typo3temp/tx_ncstaticfilecache/%{HTTP_HOST}/%{REQUEST_URI} [L]
 
-# </static file cache rules>
+# end of static file cache ruleset
 #------------------------------------------------------------------------------
 
 
