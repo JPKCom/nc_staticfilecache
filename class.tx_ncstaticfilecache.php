@@ -296,7 +296,7 @@ class tx_ncstaticfilecache {
 					// Clear temp files, not frontend cache.
 					break;
 				default:
-					if (t3lib_div::testInt($cacheCmd)) {
+					if (\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($cacheCmd)) {
 						$this->debug('clearing cache for pid: ' . $cacheCmd);
 						$this->deleteStaticCache($cacheCmd);
 					} else {
@@ -463,7 +463,7 @@ class tx_ncstaticfilecache {
 					'pid=' . $pObj->page['uid'] .
 						' AND host = ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($host, $this->fileTable) .
 						' AND file=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($file, $this->fileTable) .
-						' AND additionalhash=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($additionalHash, $this->fileTable) . 
+						' AND additionalhash=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($additionalHash, $this->fileTable) .
 						' AND ismarkedtodelete=0'
 				);
 
@@ -545,7 +545,7 @@ class tx_ncstaticfilecache {
 				$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
 					'uid',
 					$this->fileTable,
-					'pid=' . $pObj->page['uid'] . 
+					'pid=' . $pObj->page['uid'] .
 						' AND host = ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($host, $this->fileTable) .
 						' AND file=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($file, $this->fileTable) .
 						(!$additionalHash ? ' AND additionalhash=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($additionalHash, $this->fileTable) : '')
@@ -872,7 +872,7 @@ class tx_ncstaticfilecache {
 								throw new RuntimeException('Could not delete already existing temp static cache directory "' . $tmpDir . '"');
 							}
 						}
-						
+
 						if(FALSE === rename($srcDir, $tmpDir)) {
 							throw new RuntimeException('Could not rename static cache directory "' . $srcDir . '"');
 						}
@@ -932,7 +932,7 @@ class tx_ncstaticfilecache {
 		}
 		return $result;
 	}
-	
+
 	/**
 	 * Gets all dirty elements from database.
 	 *

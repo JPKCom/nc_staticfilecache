@@ -172,7 +172,7 @@ class tx_ncstaticfilecache {
 					if ($this->debug)	t3lib_div::devlog("clearing all static cache", $this->extKey, 1);
 					break;
 				default:
-					if (t3lib_div::testInt($cacheCmd)) {
+					if (\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($cacheCmd)) {
 						$res = $GLOBALS['TYPO3_DB']->exec_SELECTquery('file', $this->fileTable, 'pid='.$cacheCmd);
 						if ($res) {
 							$row = $GLOBALS['TYPO3_DB']->sql_fetch_assoc($res);
