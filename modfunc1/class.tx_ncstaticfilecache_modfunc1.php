@@ -41,7 +41,14 @@
 
 require_once(PATH_t3lib.'class.t3lib_browsetree.php');
 require_once(PATH_t3lib.'class.t3lib_extobjbase.php');
-require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.php');
+
+$conf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['nc_staticfilecache']);
+if($conf['debug']) {
+	require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.debug.php');
+}
+else {
+	require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.php');
+}
 
 /**
  * Static file cache extension
@@ -70,7 +77,7 @@ class tx_ncstaticfilecache_modfunc1 extends t3lib_extobjbase {
 
 		// Initialize tree object:
 		$tree = t3lib_div::makeInstance('t3lib_browsetree');
-		$tree->init('AND pages.doktype < 199 AND '.$GLOBALS['BE_USER']->getPagePermsClause(1).' AND pages.hidden = "0"');
+		$tree->init('AND pages.doktype < 199 AND '.$GLOBALS['BE_USER']->getPagePermsClause(1).' AND pages.deleted = 0'); //.' AND pages.hidden = "0"');
 		$tree->ext_IconMode = true;
 		$tree->ext_showPageId = $BE_USER->getTSConfigVal('options.pageTree.showPageIdWithTitle');
 		$tree->showDefaultTitleAttribute = true;
@@ -122,12 +129,12 @@ class tx_ncstaticfilecache_modfunc1 extends t3lib_extobjbase {
 					}
 
 					$tCells[] = '<td nowrap="nowrap"><span class="typo3-dimmed">'.($frec['crdate']?t3lib_BEfunc::datetime($frec['crdate']):'').'</span></td>';
-					$tCells[] = '<td nowrap="nowrap">'.t3lib_BEfunc::dateTimeAge($frec['expires'],-1).'</td>';
+					$tCells[] = '<td nowrap="nowrap">'.t3lib_BEfunc::calcAge(($frec['cache_timeout']),$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')).'</td>';
 					$tCells[] = '<td nowrap="nowrap">'.($frec['explanation']?$frec['explanation']:'').'</td>';
 
 					// Compile Row:
 					$output.= '
-						<tr class="bgColor4" title="id='.$frec['pid'].'">
+						<tr class="bgColor4" title="id='.$frec['pid'].' host='.$frec['host'].' file='.$frec['file'].'">
 							'.implode('
 							',$tCells).'
 						</tr>';
@@ -146,7 +153,7 @@ class tx_ncstaticfilecache_modfunc1 extends t3lib_extobjbase {
 		$tCells = array();
 		$tCells[]='<td>Page:</td>';
 		$tCells[]='<td>Created:</td>';
-		$tCells[]='<td>Expires:</td>';
+		$tCells[]='<td>Cache Timeout:</td>';
 		$tCells[]='<td>Explanation:</td>';
 		$output = '
 			<tr class="bgColor5 tableheader">

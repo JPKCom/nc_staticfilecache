@@ -27,11 +27,16 @@ RewriteCond %{HTTP:Cache-Control} !no-cache
 # Enable this if you use a mixed setup.
 #RewriteCond %{HTTPS} off
 
-# NO backend user is logged in. Please not that the be_typo_user expires at the
+# NO backend user is logged in. Please note that the be_typo_user expires at the
 # end of the browser session. So, although you have already logged out of the
 # backend, you will still have to either restart your browser or remove the
 # cookie manually for this rule to work.
 RewriteCond %{HTTP_COOKIE} !be_typo_user [NC]
+
+# NO frontend user is logged in. Logged in frontend users may see different
+# information than anonymous users. But the anonymous version is cached. So
+# don't show the anonymous version to logged in frontend users.
+RewriteCond %{HTTP_COOKIE} !nc_staticfilecache [NC]
 
 # We only redirect GET requests
 RewriteCond %{REQUEST_METHOD} GET
