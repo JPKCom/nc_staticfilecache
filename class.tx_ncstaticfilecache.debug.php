@@ -37,11 +37,11 @@
  *  227:     function getRecordForPageID($pid)
  *  245:     function headerNoCache (&$params, $parent)
  *  262:     function insertPageIncache (&$pObj, &$timeOutTime)
- *  418:     function logNoCache (&$params)
- *  438:     function mkdir_deep($destination,$deepDir)
- *  458:     function removeExpiredPages (&$pObj)
- *  492:     function setFeUserCookie (&$params, &$pObj)
- *  540:     function rm ($dir)
+ *  410:     function logNoCache (&$params)
+ *  430:     function mkdir_deep($destination,$deepDir)
+ *  450:     function removeExpiredPages (&$pObj)
+ *  484:     function setFeUserCookie (&$params, &$pObj)
+ *  532:     function rm ($dir)
  *
  * TOTAL FUNCTIONS: 10
  * (This index is automatically created/updated by the extension "extdeveval")
@@ -322,21 +322,12 @@ class tx_ncstaticfilecache {
 			&& !$workspacePreview
 			&& $loginsDeniedCfg) {
 
-				$phpversion = phpversion();
-				$phpversion = preg_replace ('/\./', '', $phpversion);
-
-				if ($phpversion > 500) {
-					// The recursive=true (third param) was added in php 5.0.0
-					@mkdir(PATH_site.$cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'), 0770, true);
+				if (t3lib_div::int_from_ver(TYPO3_version) < 4000000) {
+					$this->mkdir_deep(PATH_site, $cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'));
 				}
 				else {
-					if (t3lib_div::int_from_ver(TYPO3_version) < 4000000) {
-						$this->mkdir_deep(PATH_site, $cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'));
-					}
-					else {
-						// This function does not exist in TYPO3 3.8.1
-						t3lib_div::mkdir_deep(PATH_site, $cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'));
-					}
+					// This function does not exist in TYPO3 3.8.1
+					t3lib_div::mkdir_deep(PATH_site, $cacheDir.t3lib_div::getIndpEnv('REQUEST_URI'));
 				}
 
 				$conf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf'][$this->extKey]);
@@ -345,10 +336,11 @@ class tx_ncstaticfilecache {
 
 				if ($this->debug)	t3lib_div::devlog("writing cache for pid: ".$pObj->id, $this->extKey, 1);
 
+				$timeOutSeconds = $timeOutTime - $GLOBALS['EXEC_TIME'];
+
 				if ($conf['sendCacheControlHeader']) {
 					$htaccess = t3lib_div::getIndpEnv('REQUEST_URI').'/.htaccess';
 					$htaccess = preg_replace('#//#', '/', $htaccess);
-					$timeOutSeconds = $timeOutTime - $GLOBALS['EXEC_TIME'];
 					if ($this->debug)	t3lib_div::devlog("writing .htaccess with timeout: ".$timeOutSeconds, $this->extKey, 1);
 					$htaccessContent = '<IfModule mod_expires.c>
 	ExpiresActive on

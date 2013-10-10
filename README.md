@@ -1,19 +1,18 @@
 # TYPO3 Extension "nc_staticfilecache"
 Transparent static file cache solution using mod_rewrite and mod_expires. Increase response times for static pages by a factor of 230!
 
-## Version 2.3.0
+## Version 2.3.1
 
 
 
 
 <table>
-	<tr><td>Version</td><td>2.3.0 stable</td></tr>
-	<tr><td>Release date</td><td>28. June 2007</td></tr>
+	<tr><td>Version</td><td>2.3.1 stable</td></tr>
+	<tr><td>Release date</td><td>11. May 2008</td></tr>
 	<tr><td>Author</td><td>Michiel Roos, Tim Lochmller, Marc Hrsken</td></tr>
-	<tr><td>Comment</td><td>- Now handles external url properly, thanks to Helmut Hummel.
-- Default exclusion of .css and .xml from cache rewriting.
-- Put cleaner script back in. Its optional! Allows for static dynamic extensions.
-- updated manual</td></tr>
+	<tr><td>Comment</td><td>fixed bug, $timeOutSeconds was set only when $conf[sendCacheControlHeader] was set but used also it $conf[sendCacheControlHeader] was not set . . . This caused expiry time to be 0 if sendCacheControlHeader was not set.
+
+</td></tr>
 </table>
 
 ## !! Attention !!
