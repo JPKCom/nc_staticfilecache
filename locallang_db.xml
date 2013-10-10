@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<T3locallang>
+  <meta type="array">
+    <type>database</type>
+    <description>Language labels for constants (extension 'tx_ncstaticfilecache_pi1')</description>
+  </meta>
+  <data type="array">
+    <languageKey index="default" type="array">
+      <label index="nc_staticfilecache.field">Cache page as static file</label>
+    </languageKey>
+    <languageKey index="nl" type="array">
+      <label index="nc_staticfilecache.field">Pagina opslaan als statische html</label>
+    </languageKey>
+  </data>
+</T3locallang>
