@@ -15,19 +15,19 @@ $EM_CONF[$_EXTKEY] = array (
 	'description' => 'Transparent static file cache solution using mod_rewrite and mod_expires. Increase response times for static pages by a factor of 230!',
 	'category' => 'fe',
 	'shy' => 0,
-	'version' => '2.3.1',
+	'version' => '2.3.4',
 	'dependencies' => '',
 	'conflicts' => '',
 	'priority' => '',
 	'loadOrder' => '',
-	'module' => 'cli/pre_4.1',
+	'module' => '',
 	'state' => 'stable',
 	'uploadfolder' => 0,
 	'createDirs' => '',
 	'modify_tables' => 'pages',
 	'clearcacheonload' => 0,
 	'lockType' => '',
-	'author' => 'Michiel Roos, Tim LochmÃ¼ller, Marc HÃ¶rsken',
+	'author' => 'Static Filecache Team',
 	'author_email' => 'extensions@netcreators.com',
 	'author_company' => 'Netcreators',
 	'CGLcompliance' => NULL,
@@ -36,6 +36,8 @@ $EM_CONF[$_EXTKEY] = array (
 	array (
 		'depends' => 
 		array (
+			'typo3' => '4.2.15-0.0.0',
+			'' => '',
 		),
 		'conflicts' => 
 		array (

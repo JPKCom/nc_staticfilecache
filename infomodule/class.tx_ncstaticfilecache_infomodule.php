@@ -42,14 +42,6 @@
 require_once(PATH_t3lib.'class.t3lib_browsetree.php');
 require_once(PATH_t3lib.'class.t3lib_extobjbase.php');
 
-$conf = unserialize($GLOBALS['TYPO3_CONF_VARS']['EXT']['extConf']['nc_staticfilecache']);
-if($conf['debug']) {
-	require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.debug.php');
-}
-else {
-	require_once(t3lib_extMgm::extPath('nc_staticfilecache').'class.tx_ncstaticfilecache.php');
-}
-
 /**
  * Static file cache extension
  *
@@ -58,6 +50,15 @@ else {
  * @subpackage tx_ncstaticfilecache
  */
 class tx_ncstaticfilecache_infomodule extends t3lib_extobjbase {
+	/**
+	 * @var	tx_ncstaticfilecache
+	 */
+	protected $pubObj;
+
+	/**
+	 * @var	integer
+	 */
+	protected $pageId = 0;
 
 	/**
 	 * MAIN function for static publishing information
@@ -67,34 +68,35 @@ class tx_ncstaticfilecache_infomodule extends t3lib_extobjbase {
 	function main()	{
 		global $BACK_PATH,$LANG,$BE_USER;
 
+		// Handle actions:
+		$this->handleActions();
+
 		$output = '';
 
 		$this->backPath = $BACK_PATH;
 
-		//$treeStartingPoint = intval($this->pObj->id);
-		$treeStartingPoint = t3lib_div::_GP('id');
-		$treeStartingRecord = t3lib_BEfunc::getRecord('pages', $treeStartingPoint);
+		$this->pageId = intval($this->pObj->id);
 
 		// Initialize tree object:
 		$tree = t3lib_div::makeInstance('t3lib_browsetree');
-		$tree->init('AND pages.doktype < 199 AND '.$GLOBALS['BE_USER']->getPagePermsClause(1).' AND pages.deleted = 0'); //.' AND pages.hidden = "0"');
+		// Also store tree prefix markup:
+		$tree->makeHTML = 2;
+		$tree->init();
+		// Set starting page Id of tree (overrides webmounts):
+		if ($this->pageId > 0) {
+			$tree->MOUNTS = array(0 => $this->pageId);
+		}
 		$tree->ext_IconMode = true;
 		$tree->ext_showPageId = $BE_USER->getTSConfigVal('options.pageTree.showPageIdWithTitle');
 		$tree->showDefaultTitleAttribute = true;
 		$tree->thisScript = 'index.php';
 		$tree->setTreeName('staticfilecache');
-		//$tree->MOUNTS = array('lip' => $treeStartingRecord);
 
 		// Creating top icon; the current page
-		$HTML = t3lib_iconWorks::getIconImage('pages', $treeStartingRecord, $GLOBALS['BACK_PATH'],'align="top"');
-		$tree->tree[] = array(
-		'row' => $treeStartingRecord,
-		'HTML' => $HTML
-		);
 		$tree->getBrowsableTree();
 
 		// Render information table:
-		$output.= $this->renderModule($tree);
+		$output .= $this->processExpandCollapseLinks($this->renderModule($tree));
 
 		return $output;
 	}
@@ -108,16 +110,14 @@ class tx_ncstaticfilecache_infomodule extends t3lib_extobjbase {
 	function renderModule($tree)	{
 		global $LANG;
 
-		// Init static publishing object:
-		$this->pubObj = t3lib_div::makeInstance('tx_ncstaticfilecache');
-		$pubDir = $this->pubObj->cacheDir;
+		$pubDir = $this->getStaticFileCacheInstance()->getCacheDirectory();
 
 		// Traverse tree:
 		$output = '';
 		foreach($tree->tree as $row)	{
 
 			// Fetch files:
-			$filerecords = $this->pubObj->getRecordForPageID($row['row']['uid']);
+			$filerecords = $this->getStaticFileCacheInstance()->getRecordForPageID($row['row']['uid']);
 			$cellAttrib = ($row['row']['_CSSCLASS'] ? ' class="'.$row['row']['_CSSCLASS'].'"' : '');
 
 			if (count($filerecords))	{
@@ -125,45 +125,51 @@ class tx_ncstaticfilecache_infomodule extends t3lib_extobjbase {
 					$tCells = array();
 
 					if (!$k)	{
-						$tCells[] = '<td nowrap="nowrap" valign="top" rowspan="'.count($filerecords).'"'.$cellAttrib.'>'.$row['HTML'].t3lib_BEfunc::getRecordTitle('pages',$row['row'],TRUE).'</td>';
+						$tCells[] = '<td nowrap="nowrap"' . $cellAttrib . '>' . $row['HTML'] . t3lib_BEfunc::getRecordTitle('pages', $row['row'], TRUE) . '</td>';
+					} else {
+						$tCells[] = '<td nowrap="nowrap"' . $cellAttrib . '>' . $row['HTML_depthData'] . '</td>';
 					}
 
-					$tCells[] = '<td nowrap="nowrap"><span class="typo3-dimmed">'.($frec['crdate']?t3lib_BEfunc::datetime($frec['crdate']):'').'</span></td>';
-					$timeout = ($frec['crdate'] > 0) ? t3lib_BEfunc::calcAge(($frec['cache_timeout']),$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')) : '';
+					$tCells[] = '<td nowrap="nowrap"><span class="typo3-dimmed">'.($frec['tstamp']?t3lib_BEfunc::datetime($frec['tstamp']):'').'</span></td>';
+					$timeout = ($frec['tstamp'] > 0) ? t3lib_BEfunc::calcAge(($frec['cache_timeout']),$GLOBALS['LANG']->sL('LLL:EXT:lang/locallang_core.php:labels.minutesHoursDaysYears')) : '';
 					$tCells[] = '<td nowrap="nowrap">'.$timeout.'</td>';
+					$tCells[] = '<td>' . ($frec['isdirty'] ? 'yes' : 'no') . '</td>';
 					$tCells[] = '<td nowrap="nowrap">'.($frec['explanation']?$frec['explanation']:'').'</td>';
 
-					// Compile Row:
-					$output.= '
-						<tr class="bgColor4" title="id='.$frec['pid'].' host='.$frec['host'].' file='.$frec['file'].'">
-							'.implode('
-							',$tCells).'
-						</tr>';
+				// Compile Row:
+					$output .= $this->renderTableRow(
+						$tCells,
+						'valign="top" title="id='.$frec['pid'].' host='.$frec['host'].' uri='.$frec['uri'].'"',
+						$frec
+					);
 				}
 			} else {
+				$tCells = array(
+					'<td nowrap="nowrap" colspan="4"' . $cellAttrib . '>' . $row['HTML'] . t3lib_BEfunc::getRecordTitle('pages', $row['row'], TRUE) . '</td>',
+					'<td><span class="typo3-dimmed">' . ($row['row']['uid'] == 0 ? '' : 'not hit') . '</span></td>',
+				);
+
 				// Compile Row:
-				$output.= '
-					<tr class="bgColor4" title="id='.$row['row']['uid'].'">
-						<td nowrap="nowrap" colspan="3"'.$cellAttrib.'>'.$row['HTML'].t3lib_BEfunc::getRecordTitle('pages',$row['row'],TRUE).'</td>
-						<td><span class="typo3-dimmed">'.($row['row']['uid'] == 0 ? '' : 'not hit').'</span></td>
-					</tr>';
+				$output .= $this->renderTableRow(
+					$tCells,
+					'valign="top" class="bgColor4" title="id='.$row['row']['uid'].'"'
+				);
 			}
 		}
 
 		// Create header:
 		$tCells = array();
 		$tCells[]='<td>Page:</td>';
-		$tCells[]='<td>Created:</td>';
+		$tCells[]='<td>Last modified:</td>';
 		$tCells[]='<td>Cache Timeout:</td>';
+		$tCells[]='<td>is Dirty:</td>';
 		$tCells[]='<td>Explanation:</td>';
-		$output = '
-			<tr class="bgColor5 tableheader">
-				'.implode('
-				',$tCells).'
-			</tr>'.$output;
+
+		$output = $this->renderTableHeaderRow($tCells, 'class="bgColor5 tableheader"') . $output;
 
 		// Compile final table and return:
-		$output = '
+		$output = 
+			$this->renderHeader() . '
 			<table border="0" cellspacing="1" cellpadding="0" class="lrPadding">'.$output.'
 			</table>';
 
@@ -175,7 +181,137 @@ class tx_ncstaticfilecache_infomodule extends t3lib_extobjbase {
 		$LANG->sL('LLL:EXT:lang/locallang_core.php:labels.refresh',1).'</a>
 			</p>';
 
+		// Set the current page Id:
+		if ($this->pageId > 0) {
+			$output .= '<input type="hidden" name="id" value="' . $this->pageId . '" />';
+		}
+
 		return $output;
+	}
+
+	/**
+	 * Renders a table row.
+	 *
+	 * @param	array		$elements: The row elements to be rendered
+	 * @param	string		$attributes: (optional) The attributes to be used on the table row
+	 * @param	array		$cacheElement: (optional) The cache element row
+	 * @return	string		The HTML representation of the table row
+	 */
+	protected function renderTableRow(array $elements, $attributes = '', array $cacheElement = NULL) {
+		return '<tr' . ($attributes ? ' ' : '') . $attributes . '>' . implode('', $elements) . '</tr>';
+	}
+
+	/**
+	 * Renders a table header row.
+	 *
+	 * @param	array		$elements: The row elements to be rendered
+	 * @param	string		$attributes: (optional) The attributes to be used on the table row
+	 * @return	string		The HTML representation of the table row
+	 */
+	protected function renderTableHeaderRow(array $elements, $attributes = '') {
+		return '<tr' . ($attributes ? ' ' : '') . $attributes . '>' . implode('', $elements) . '</tr>';
+	}
+
+	/**
+	 * Handles incoming actions (e.g. removing all expired pages).
+	 *
+	 * @return	void
+	 */
+	protected function handleActions() {
+		$action = t3lib_div::_GP('ACTION');
+
+		if (isset($action['removeExpiredPages'])) {
+			$this->getStaticFileCacheInstance()->removeExpiredPages();
+		} elseif (isset($action['processDirtyPages'])) {
+			$this->getStaticFileCacheInstance()->processDirtyPages();
+		}
+	}
+
+	/**
+	 * Renders the header of the modile ("Static File Cache") and the accordant actions.
+	 *
+	 * @return	string		The HTML code of the header section
+	 */
+	protected function renderHeader() {
+		return $this->pObj->doc->section(
+			'Static File Cache',
+			implode('', $this->getHeaderActionButtons()),
+			false,
+			true
+		);
+	}
+
+	/**
+	 * Gets the header actions buttons to be rendered in the header section.
+	 *
+	 * @return	array		Action buttons to be rendered in the header section
+	 */
+	protected function getHeaderActionButtons() {
+		$headerActionButtons = array(
+			'removeExpiredPages' => $this->renderActionButton('removeExpiredPages', 'Remove all expired pages', 'Are you sure?'),
+		);
+
+		if ($this->isMarkDirtyInsteadOfDeletionDefined()) {
+			$headerActionButtons['processDirtyPages'] = $this->renderActionButton('processDirtyPages', 'Process all dirty pages', 'Are you sure?');
+		}
+
+		return $headerActionButtons;
+	}
+
+	/**
+	 * Renders a single action button,
+	 *
+	 * @param	string		$elementName: Name attribute of the element
+	 * @param	string		$elementLabel: Label of the action button
+	 * @param	string		$confirmationText: (optional) Confirmation text - will not be used if empty
+	 * @return	string		The HTML representation of an action button
+	 */
+	protected function renderActionButton($elementName, $elementLabel, $confirmationText = '') {
+		return '<input type="submit" name="ACTION[' . htmlspecialchars($elementName) . ']" value="' . $elementLabel . '"' .
+			($confirmationText ? ' onclick="return confirm(\'' . addslashes($confirmationText) . '\');"' : '') . ' />';
+	}
+
+	/**
+	 * Gets the instance of the static file cache object to modify the cached information.
+	 * 
+	 * @return	tx_ncstaticfilecache
+	 */
+	protected function getStaticFileCacheInstance() {
+		if (!isset($this->pubObj)) {
+			t3lib_div::requireOnce(t3lib_extMgm::extPath('nc_staticfilecache') . 'class.tx_ncstaticfilecache.php');
+			$this->pubObj = t3lib_div::makeInstance('tx_ncstaticfilecache');
+		}
+		return $this->pubObj;
+	}
+
+	/**
+	 * Determines whether the extension configuration property 'markDirtyInsteadOfDeletion' is enabled.
+	 *
+	 * @return	boolean		Whether the extension configuration property 'markDirtyInsteadOfDeletion' is enabled
+	 */
+	protected function isMarkDirtyInsteadOfDeletionDefined() {
+		return (bool)$this->getStaticFileCacheInstance()->getConfigurationProperty('markDirtyInsteadOfDeletion');
+	}
+
+	/**
+	 * Processes the expand/collapse links and adds the Id of the current page in branch.
+	 *
+	 * Example:
+	 * index.php?PM=0_0_23_staticfilecache#0_23 --> index.php?PM=0_0_23_staticfilecache&id=13#0_23
+	 *
+	 * @param	string		$content: Content to be processed
+	 * @return	string		The processed and modified content
+	 */
+	protected function processExpandCollapseLinks($content) {
+		if (strpos($content, '?PM=') !== false && $this->pageId > 0) {
+			$content = preg_replace(
+				'/(href=")([^"]+\?PM=[^"#]+)(#[^"]+)?(")/',
+				'${1}${2}&id=' . $this->pageId . '${3}${4}',
+				$content
+			);
+		}
+
+		return $content;
 	}
 }
 
